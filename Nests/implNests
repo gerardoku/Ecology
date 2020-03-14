@@ -1,0 +1,281 @@
+# Synoptic Model for Analyzing Animal Space Use
+# Based on General Framework R code provided by Devin Johnson, email: devin.johnson@noaa.gov
+# Synoptic model added by Jon Horne, email: jhorne@uidaho.edu
+# Random Effects added by Gerardo E. Soto, email: gerardo.soto@usach.cl
+
+# read in files:
+#(1) set working directory with input files
+
+workdir = "C:/Users/LEC-i7/Documents/GERARDO/Trabajos/Manuscritos/Carpintero/Uso de habitat/R/SMSU VHF/"
+workdir = "C:/Users/LEC/Documents/GERARDO/Trabajos/Manuscritos/Carpintero/Uso de habitat/R/SMSU-Pob-VHF/"
+workdir = "C:/Users/Gerardo/Documents/GERARDO/Trabajos/Manuscritos/Carpintero/Uso de habitat/R/SMSU VHF"
+setwd(workdir)
+ 
+#(2) choose file containing functions: GeneralFramework_SynopticModels.R
+source(file = "SynopticModel_Functions_random_def2.r")
+#source(file = "SynopticModel_Functions_G.Soto2.r")
+
+#(3) choose locations file:
+
+LocationsFileList = c("Locs1.txt","Locs2.txt","Locs3.txt","Locs4.txt","Locs5.txt","Locs6.txt")
+
+#============================================================================
+# Co-variables:  
+  [1] "TY1"             "TY2"            
+  [3] "SP1"             "SP2"            
+  [5] "SP3"             "SLOPE_NOR"      
+  [7] "PSRI_NOR"        "ALT_NOR"        
+  [9] "TS1"             "TS2"            
+ [11] "TS3"             "SPS1"           
+ [13] "SPS2"            "SPS3"           
+ [15] "TSP1"            "TSP2"           
+ [17] "TSP3"            "TP1"            
+ [19] "TP2"             "DH"             
+ [21] "PBM"             "MDE"            
+ [23] "PTE"             "MPSRI"          
+ [25] "AREA"            "PBM.TY1"        
+ [27] "PBM.TY2"         "PBM.SP1"        
+ [29] "PBM.SP2"         "PBM.SP3"        
+ [31] "PBM.SLOPE_NOR"   "PBM.PSRI_NOR"   
+ [33] "PBM.ALT_NOR"     "PBM.TS1"        
+ [35] "PBM.TS2"         "PBM.TS3"        
+ [37] "PBM.SPS1"        "PBM.SPS2"       
+ [39] "PBM.SPS3"        "PBM.TSP1"       
+ [41] "PBM.TSP2"        "PBM.TSP3"       
+ [43] "PBM.TP1"         "PBM.TP2"        
+ [45] "PBM.DH"          "MDE.TY1"        
+ [47] "MDE.TY2"         "MDE.SP1"        
+ [49] "MDE.SP2"         "MDE.SP3"        
+ [51] "MDE.SLOPE_NOR"   "MDE.PSRI_NOR"   
+ [53] "MDE.ALT_NOR"     "MDE.TS1"        
+ [55] "MDE.TS2"         "MDE.TS3"        
+ [57] "MDE.SPS1"        "MDE.SPS2"       
+ [59] "MDE.SPS3"        "MDE.TSP1"       
+ [61] "MDE.TSP2"        "MDE.TSP3"       
+ [63] "MDE.TP1"         "MDE.TP2"        
+ [65] "MDE.DH"          "PTE.TY1"        
+ [67] "PTE.TY2"         "PTE.SP1"        
+ [69] "PTE.SP2"         "PTE.SP3"        
+ [71] "PTE.SLOPE_NOR"   "PTE.PSRI_NOR"   
+ [73] "PTE.ALT_NOR"     "PTE.TS1"        
+ [75] "PTE.TS2"         "PTE.TS3"        
+ [77] "PTE.SPS1"        "PTE.SPS2"       
+ [79] "PTE.SPS3"        "PTE.TSP1"       
+ [81] "PTE.TSP2"        "PTE.TSP3"       
+ [83] "PTE.TP1"         "PTE.TP2"        
+ [85] "PTE.DH"          "MPSRI.TY1"      
+ [87] "MPSRI.TY2"       "MPSRI.SP1"      
+ [89] "MPSRI.SP2"       "MPSRI.SP3"      
+ [91] "MPSRI.SLOPE_NOR" "MPSRI.PSRI_NOR" 
+ [93] "MPSRI.ALT_NOR"   "MPSRI.TS1"      
+ [95] "MPSRI.TS2"       "MPSRI.TS3"      
+ [97] "MPSRI.SPS1"      "MPSRI.SPS2"     
+ [99] "MPSRI.SPS3"      "MPSRI.TSP1"     
+[101] "MPSRI.TSP2"      "MPSRI.TSP3"     
+[103] "MPSRI.TP1"       "MPSRI.TP2"      
+[105] "MPSRI.DH"        "AREA.TY1"       
+[107] "AREA.TY2"        "AREA.SP1"       
+[109] "AREA.SP2"        "AREA.SP3"       
+[111] "AREA.SLOPE_NOR"  "AREA.PSRI_NOR"  
+[113] "AREA.ALT_NOR"    "AREA.TS1"       
+[115] "AREA.TS2"        "AREA.TS3"       
+[117] "AREA.SPS1"       "AREA.SPS2"      
+[119] "AREA.SPS3"       "AREA.TSP1"      
+[121] "AREA.TSP2"       "AREA.TSP3"      
+[123] "AREA.TP1"        "AREA.TP2"       
+[125] "AREA.DH"        
+
+ModelsList=list()
+for(i in 1:14){
+ModelsList[[i]]=c(rep(0,131))
+}
+
+#============================================================================
+# Hypothesis models
+ModelsList[[2]][c(7,24)] = 1 # MPSRI + PSRI
+ModelsList[[3]][c(92)] = 1 # MPSRI * PSRI
+ModelsList[[4]][c(92,7,24)] = 1 # MPSRI * PSRI + MPSRI + PSRI
+ModelsList[[5]][c(1,21)] = 1 # PBM + TY1
+ModelsList[[6]][c(26,126:131)] = 1 # PBM * TY1
+ModelsList[[7]][c(1,21,26)] = 1 # PBM * TY1 + PBM + TY1
+ModelsList[[8]][c(20,22)] = 1 # MDE + DH
+ModelsList[[9]][c(65)] = 1 # MDE * DH
+ModelsList[[10]][c(20,22,65)] = 1 # MDE * DH + MDE + DH
+
+
+#============================================================================
+# Tree-Quality test models
+ModelsList[[11]][c(7)] = 1 # PSRI
+ModelsList[[12]][c(9)] = 1 # TS1
+ModelsList[[13]][c(15)] = 1 # TSP1
+ModelsList[[14]][c(18)] = 1 # TP1
+
+#============================================================================
+# Read Locs files 				
+Track<-list()
+locAvailFile<-rep(NA,length(LocationsFileList))
+for (IndividNum in 1:length(LocationsFileList)){
+locationsfile = LocationsFileList[IndividNum]
+origfilename = strsplit(locationsfile,"//.")[[1]][1]
+Track[[IndividNum]] <- as.matrix(read.table(file= locationsfile,head=TRUE,sep="	", row.names=NULL)) 
+
+#separate text refering to availability file from track data
+locAvailFile[IndividNum]=Track[[IndividNum]][1,(ncol(Track[[IndividNum]])-1)] ##Leer el primer registro solamente para habitat que no cambia
+Track[[IndividNum]] = apply(Track[[IndividNum]][,1:(ncol(Track[[IndividNum]])-2)],2,as.numeric)
+}
+AvailFileNames<-locAvailFile
+#============================================================================
+#For non-changing habitat values...
+AvailList=list()
+for (i in 1:length(locAvailFile)){
+  #these two lines to test
+  filename = paste(workdir,"\\",locAvailFile[i],sep="")
+  AvailList[[i]] = as.matrix(read.table(file=filename,head=TRUE,sep=''))
+}
+names(AvailList)=locAvailFile
+#===================================================================================
+PrevBVNParamEsts = array(0,ncol(AvailList[[1]][,-(1:2)]))
+BVNParameters.names<-colnames(AvailList[[1]])[-c(1:2)]
+names(PrevBVNParamEsts) = BVNParameters.names
+
+#PREPARAR SUMMARYOUT
+SummaryOut = matrix(0,length(ModelsList),(5+3*length(BVNParameters.names))) 
+OutRow =1
+if (IndividNum == length(Track)) {
+	SECovNames = BVNParameters.names
+	PValue <- BVNParameters.names
+	for (i in 1:length(SECovNames)){
+		SECovNames[i] = paste("SE",BVNParameters.names[i], sep="_")
+		PValue[i] = paste("P",BVNParameters.names[i], sep="_")
+	}
+  	SOutNames = c("IndivID","Model#","Neg2*L","AICc","Convergence",BVNParameters.names,PValue,SECovNames)
+	colnames(SummaryOut) = SOutNames
+  	SummaryOut[,6:ncol(SummaryOut)]=NA
+} #end if 
+
+# =======================================================================================
+# incluir variabilidad en factores individuos
+
+t=Sys.time()
+t<-vector()
+a<-vector()
+for(IndividNum in 1:length(LocationsFileList)){
+ for(col in 1:length(LocationsFileList)){
+  Track[[IndividNum]][,col+128]=rnorm(NROW(Track[[IndividNum]]),1,0.01)
+  #AvailList[[IndividNum]][,col+127]=rep(0,NROW(AvailList[[IndividNum]]))
+ }
+}
+Sys.time()-t
+
+# =======================================================================================
+# Hacer 0 los valores de las familias para los árboles
+
+for(IndividNum in 1:length(LocationsFileList)){
+ AvailList[[IndividNum]][,(NCOL(AvailList[[IndividNum]])-5):NCOL(AvailList[[IndividNum]])]=0
+}
+
+#===================================================================================
+#===================================================================================
+# Loop through candidate models; Bivariate Normal null model
+
+for (k in c(11:14,1:10)){ 
+CurrentTrack=list()
+CurrentAList=list()
+for (ind in 1:length(Track)){
+    #delete columns (i.e., variables) in Availability grids, UseDist, and Track not used 
+      Nvariables = sum(ModelsList[[k]]) #number of variables in current model
+      CurrentTrack[[ind]]=Track[[ind]][,1:3] 					#keep x, y and time
+	for (i in 1:length(AvailList)){
+	 CurrentAList[[i]]=AvailList[[i]][,1:2]			#keep x and y
+	} #end availability list loop
+	cc=3
+	for (col in 3:ncol(AvailList[[1]])){
+	  if (ModelsList[[k]][col-2]==1){
+          CurrentTrack[[ind]]=cbind(CurrentTrack[[ind]], Track[[ind]][,col+1])
+          colnames(CurrentTrack[[ind]])[cc+1]=colnames(AvailList[[1]])[col]
+	    for (i in 1:length(AvailList)){
+	       CurrentAList[[i]]=cbind(CurrentAList[[i]],AvailList[[i]][,col])
+             colnames(CurrentAList[[i]])[cc]=colnames(AvailList[[1]])[col]	
+	    } #end availability list loop  
+		cc = cc+1                  
+	  }# end if statement
+	} #end variable column loop
+}
+
+# -----------------------------------------------------------------------------------
+# Synoptic with bivariate normal
+# Get initial parameter values
+ThetaW = c(rep(0, (ncol(CurrentTrack[[1]])-2)))	
+###VALORES INICIALES PARA LOS AJUSTES
+param<-list()
+for(ind in 1:length(Track)){
+mu = as.numeric(apply(CurrentTrack[[ind]][,1:2],2,mean))
+sdx = sd(CurrentTrack[[ind]][,1])
+sdy = sd(CurrentTrack[[ind]][,2])
+corrXY = cor(CurrentTrack[[ind]][,1],CurrentTrack[[ind]][,2])
+lnsdx = log(sdx)
+lnsdy = log(sdy)
+param[[ind]]<-c( mu, lnsdx, lnsdy, corrXY)
+}
+
+SBVN.fit=NULL
+a=Sys.time()
+SBVN.fit=try(sbvnle(CurrentTrack,param,CurrentAList,start.val=ThetaW),silent=FALSE) #################### FIT ###################
+time=Sys.time()-a
+time
+SBVN.fit 
+
+if(length(SBVN.fit)==6){
+PrevBVNParamEsts[rownames(SBVN.fit$parTable)]=SBVN.fit$parTable[rownames(SBVN.fit$parTable),1]
+
+#Write output probability file to working directory
+for (i in 1:length(CurrentAList)){
+	extentfile = AvailFileNames[i]
+	outputfile = paste("Prob_", origfilename,"_BVN_Model",k,"_", extentfile,sep = "")
+	#write.table (SBVN.fit[[7]][[i]], file = outputfile, col.names = TRUE, row.names = F, sep = "	")
+}
+
+#Write output table to working directory
+outputfile = paste("BVN_Model",k,origfilename,"_Ind.txt",sep = "")
+tmp.wid = getOption("width")  # save current width
+options(width=10000)
+sink(outputfile)              # redirect output to file
+print(SBVN.fit[1:6])   # print the object
+sink()                        # cancel redirection
+options(width=tmp.wid)        # restore linewidth
+
+
+SummaryOut[OutRow,1]=origfilename
+SummaryOut[OutRow,2]=k
+SummaryOut[OutRow,3]=SBVN.fit$Neg2xLikelihood
+SummaryOut[OutRow,4]=SBVN.fit$AICc
+SummaryOut[OutRow,5]=SBVN.fit$convergence
+for (ParamNum in 1:nrow(SBVN.fit$parTable)){
+	PName = rownames(SBVN.fit$parTable)[ParamNum]
+	SummaryOutCol = which(colnames(SummaryOut)==PName)
+ 	SummaryOut[OutRow, SummaryOutCol]= SBVN.fit$parTable[PName,1] #Estimate
+	SummaryOut[OutRow, SummaryOutCol+length(BVNParameters.names)]= SBVN.fit$parTable[PName,6] #PValue
+	SummaryOut[OutRow, SummaryOutCol+2*length(BVNParameters.names)]= SBVN.fit$parTable[PName,2] #SE
+}
+OutRow = OutRow+1
+
+write.table(SummaryOut, file="SummaryOut_BVN_indiv.txt", row.names = FALSE, col.names = TRUE)
+}else{
+
+Error=list()
+Error[[1]]=SBVN.fit[1]
+Error[[2]]=time
+Error[[3]]=colnames(CurrentAList[[1]])[-(1:2)]
+
+#Write output table to working directory
+outputfile = paste("BVN_Model",k,origfilename,"_Error.txt",sep = "")
+tmp.wid = getOption("width")  # save current width
+options(width=10000)
+sink(outputfile)              # redirect output to file
+print(Error)   # print the object
+sink()                        # cancel redirection
+options(width=tmp.wid)        # restore linewidth
+
+}
+
+} #end loop through candidate models list
