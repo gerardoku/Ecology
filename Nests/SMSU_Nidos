@@ -1,0 +1,179 @@
+# Synoptic Model for Analyzing Animal Space Use
+# Based on General Framework R code provided by Devin Johnson, email: devin.johnson@noaa.gov
+# Synoptic model added by Jon Horne, email: jhorne@uidaho.edu
+# Random Effects added by Gerardo E. Soto, email: gerardo.soto@usach.cl
+
+# read in files:
+#(1) set working directory with input files
+
+workdir = "C:/Users/Gerardo/Documents/Gerardo/Trabajos/Manuscritos/Carpintero/Nest clustering/R"
+setwd(workdir)
+ 
+#(2) choose file containing functions: GeneralFramework_SynopticModels.R
+source(file = "SMSU_nidos_Funciones.r")
+
+#(3) choose locations file:
+LocationsFileList = c("locs.covs_1.txt","locs.covs_2.txt","locs.covs_3.txt","locs.covs_4.txt",
+				"locs.covs_5.txt","locs.covs_6.txt","locs.covs_7.txt")
+#
+
+#============================================================================
+# Co-variables:  
+
+ModelsList=list()
+for(i in 1:4){					
+ ModelsList[[i]]=c(rep(0,2)) 			
+}
+
+#============================================================================
+# Hypothesis models
+ModelsList[[2]][c(1,2)] = 1 	# NESTS + PSRI
+ModelsList[[3]][c(1)] = 1 	# PSRI
+ModelsList[[4]][c(2)] = 1 	# NESTS
+
+ #============================================================================
+ # Read Locs files 				
+ Track<-list()
+ locAvailFile<-rep(NA,length(LocationsFileList))
+ for (IndividNum in 1:length(LocationsFileList)){
+  locationsfile = LocationsFileList[IndividNum]
+  origfilename = strsplit(locationsfile,"//.")[[1]][1]
+  Track[[IndividNum]] <- as.matrix(read.table(file= locationsfile,head=TRUE,sep=",", row.names=NULL)) 
+ 
+  #separate text refering to availability file from track data
+  locAvailFile[IndividNum]= paste("Avail_locs_",IndividNum,".txt", sep="")
+  Track[[IndividNum]] = apply(Track[[IndividNum]][,1:(ncol(Track[[IndividNum]]))],2,as.numeric)
+ }
+ AvailFileNames<-locAvailFile
+ #============================================================================
+ #For non-changing habitat values...
+ AvailList=list()
+ for (i in 1:length(locAvailFile)){
+   #these two lines to test
+   filename = paste(workdir,"//",locAvailFile[i],sep="")
+   AvailList[[i]] = as.matrix(read.table(file=paste("Avail_locs_",i,".txt", sep=""),head=TRUE,sep=",", row.names=NULL))
+   AvailList[[i]]=AvailList[[i]][AvailList[[i]][,3]!="NA",]
+ }
+ names(AvailList)=locAvailFile
+
+ #============================================================================
+ # PREPARAR SUMMARYOUT
+ SummaryOut = matrix(0,length(AvailList)*length(ModelsList),(5+3*length(BVNParameters.names))) 
+ OutRow = 1
+ SECovNames = BVNParameters.names
+ PValue <- BVNParameters.names
+ for (i in 1:length(SECovNames)){
+ 		SECovNames[i] = paste("SE",BVNParameters.names[i], sep="_")
+ 		PValue[i] = paste("P",BVNParameters.names[i], sep="_")
+ }
+ SOutNames = c("IndivID","Model#","Neg2*L","AICc","Convergence",BVNParameters.names,PValue,SECovNames)
+ colnames(SummaryOut) = SOutNames
+ SummaryOut[,6:ncol(SummaryOut)]=NA
+ 
+
+
+ #============================================================================
+ # Loop through individuals
+ for (IndividNum in 1:length(LocationsFileList)){
+  origfilename=LocationsFileList[IndividNum]
+
+ #===================================================================================
+ #===================================================================================
+ # Loop through candidate models; Bivariate Normal null model
+
+ for (k in 2:4){ 
+       #delete columns (i.e., variables) in Availability grids, UseDist, and Track not used 
+       Nvariables = sum(ModelsList[[k]]) #number of variables in current model
+       CurrentTrack=Track[[IndividNum]][,1:2] 				#keep x and y
+ 	 CurrentAList=AvailList[[IndividNum]][,1:2]			#keep x and y
+
+ 	cc=3 #posición de covariable
+
+ 	for (col in 3:ncol(AvailList[[IndividNum]])){
+  	  if (ModelsList[[k]][col-2]==1){
+           CurrentTrack=cbind(CurrentTrack, Track[[IndividNum]][,col])
+           colnames(CurrentTrack)[cc]=colnames(AvailList[[IndividNum]])[col]
+           CurrentAList=cbind(CurrentAList,AvailList[[IndividNum]][,col])
+           colnames(CurrentAList)[cc]=colnames(AvailList[[IndividNum]])[col]	
+	     cc = cc+1                  
+ 	  }# end if statement
+ 	} #end variable column loop
+
+  # -----------------------------------------------------------------------------------
+  # Synoptic with bivariate normal
+  # Get initial parameter values
+
+  ThetaW = c(rep(0, (ncol(CurrentTrack)-2)))	
+  ###VALORES INICIALES PARA LOS AJUSTES
+   mu = as.numeric(apply(CurrentTrack[,1:2],2,mean))
+   sdx = sd(CurrentTrack[,1])
+   sdy = sd(CurrentTrack[,2])
+   corrXY = cor(CurrentTrack[,1],CurrentTrack[,2])
+   lnsdx = log(sdx)
+   lnsdy = log(sdy)
+   param<-c( mu, lnsdx, lnsdy, corrXY)
+ 
+  SBVN.fit=NULL
+  a=Sys.time()
+  SBVN.fit=try(sbvnle(CurrentTrack,param,CurrentAList,start.val=ThetaW),silent=FALSE) #################### FIT ###################
+  time=Sys.time()-a
+  time
+  SBVN.fit 
+summary(exp(CurrentAList[,3:ncol(CurrentAList)]%*%c(-3,0)))
+
+  if(length(SBVN.fit)==6){
+    
+   #Write output probability file to working directory
+   for (i in 1:length(CurrentAList)){
+ 	extentfile = AvailFileNames[i]
+ 	outputfile = paste("Prob_", origfilename,"_BVN_Model",k,"_", extentfile,sep = "")
+ 	#write.table (SBVN.fit[[7]][[i]], file = outputfile, col.names = TRUE, row.names = F, sep = "	")
+   }
+ 
+   #Write output table to working directory
+   outputfile = paste("BVN_Model",k,origfilename,"_Ind.txt",sep = "")
+   tmp.wid = getOption("width")  # save current width
+   options(width=10000)
+   sink(outputfile)              # redirect output to file
+   print(SBVN.fit[1:6])   # print the object
+   sink()                        # cancel redirection
+   options(width=tmp.wid)        # restore linewidth
+ 
+   ## Summary of all models
+   SummaryOut[OutRow,1]=IndividNum
+   SummaryOut[OutRow,2]=k
+   SummaryOut[OutRow,3]=SBVN.fit$Neg2xLikelihood
+   SummaryOut[OutRow,4]=SBVN.fit$AICc
+   SummaryOut[OutRow,5]=SBVN.fit$convergence
+   for (ParamNum in 1:nrow(SBVN.fit$parTable)){
+	PName = rownames(SBVN.fit$parTable)[ParamNum]
+	SummaryOutCol = which(colnames(SummaryOut)==PName)
+ 	SummaryOut[OutRow, SummaryOutCol]= SBVN.fit$parTable[PName,1] #Estimate
+	SummaryOut[OutRow, SummaryOutCol+length(BVNParameters.names)]= SBVN.fit$parTable[PName,6] #PValue
+	SummaryOut[OutRow, SummaryOutCol+2*length(BVNParameters.names)]= SBVN.fit$parTable[PName,2] #SE
+   }
+   write.table(SummaryOut, file="SummaryOut_BVN_indiv.txt", row.names = FALSE, col.names = TRUE)
+   OutRow = OutRow+1   
+
+  }else{
+ 
+   Error=list()
+   Error[[1]]=SBVN.fit[1]
+   Error[[2]]=time
+   Error[[3]]=colnames(CurrentAList[[1]])[-(1:2)]   
+
+   #Write output table to working directory
+   outputfile = paste("BVN_Model",k,origfilename,"_Error.txt",sep = "")
+   tmp.wid = getOption("width")  # save current width
+   options(width=10000)
+   sink(outputfile)              # redirect output to file
+   print(Error)   # print the object
+   sink()                        # cancel redirection
+   options(width=tmp.wid)        # restore linewidth
+  }
+ } #end loop through candidate models list
+} #end loop through individuals
+
+ 
+
+
